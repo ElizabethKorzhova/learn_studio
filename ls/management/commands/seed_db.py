@@ -1,7 +1,13 @@
+"""Database Seeding Management Command.
+This module provides the command seed_db for filling the database
+with fake data using the faker package.
+It generates users, courses, lessons, homework, homework_submissions, and enrollments.
+"""
 import random
 import time
+from typing import Any, List
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandParser
 from django.contrib.auth.hashers import make_password
 from django.utils import timezone
 from faker import Faker
@@ -10,13 +16,22 @@ from ls.models import User, Course, Lesson, Homework, SocialLink, Enrollment, Ho
 
 
 class Command(BaseCommand):
-    def add_arguments(self, parser):
+    """Custom Django management command to seed the database with fake data.
+
+    Example: python manage.py seed_db
+
+    Example with args: python manage.py seed_db --clear True --users 10 --courses 5 --lessons 8
+    """
+
+    def add_arguments(self, parser: CommandParser) -> None:
+        """Defines the command line arguments."""
         parser.add_argument("--clear", type=bool, default=False)
         parser.add_argument("--users", type=int, default=10)
         parser.add_argument("--courses", type=int, default=2)
         parser.add_argument("--lessons", type=int, default=10)
 
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
+        """Executes the seeding of the database."""
         start_time = time.perf_counter()
 
         users_count = options["users"]
@@ -46,7 +61,17 @@ class Command(BaseCommand):
         self.stdout.write(f"Done. Command executed in {duration:.4f} seconds.")
 
     @staticmethod
-    def create_users(count: int, fake: Faker):
+    def create_users(count: int, fake: Faker) -> List[User]:
+        """
+        Generates the specified number of users and their social profiles.
+
+        Args:
+            count (int): number of users to create.
+            fake (Faker): instance of Faker to generate fake data.
+
+        Returns:
+            List[User]: list of the created User model instances.
+        """
         roles = "instructor", "student", "admin"
         social_platforms = "facebook", "x", "instagram", "youtube", "github", "linkedin"
         users = []
@@ -76,7 +101,18 @@ class Command(BaseCommand):
         return users
 
     @staticmethod
-    def create_course(instructors, students, lessons_count: int, fake: Faker):
+    def create_course(instructors: List[User], students: List[User],
+                      lessons_count: int, fake: Faker) -> None:
+        """
+        Generates the specified number lessons within a course.
+        It also fills homework, homework_submissions and enrollments tables.
+
+        Args:
+            instructors (List[User]): list of available instructors.
+            students (List[User]): list of available students.
+            lessons_count (int): number of lessons to generate for the course.
+            fake (Faker): instance of Faker to generate fake data.
+        """
         instructor = random.choice(instructors)
         enrolled_students = random.sample(students, random.randint(1, len(students)))
 
@@ -112,8 +148,7 @@ class Command(BaseCommand):
             ))
         homeworks = Homework.objects.bulk_create(homeworks_to_create)
 
-        submissions_to_create = []
-        enrollments_to_create = []
+        submissions_to_create, enrollments_to_create = [], []
 
         for enrolled_student in enrolled_students:
             submitted_count = 0
