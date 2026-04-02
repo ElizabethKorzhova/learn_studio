@@ -123,7 +123,7 @@ class Command(BaseCommand):
             price=fake.pydecimal(min_value=0, max_value=10, right_digits=2),
             start_at=fake.date_time_between(start_date="-30d", end_date="+2m",
                                             tzinfo=timezone.get_current_timezone()),
-            duration=random.randint(10, 40),
+            duration=lessons_count,
         )
 
         lessons_to_create = [
