@@ -11,7 +11,7 @@ class User(AbstractUser):
     last_name = models.CharField(max_length=255)
     phone = models.CharField(max_length=20, null=True, blank=True)
     role = models.CharField(max_length=50)
-    avatar = models.BinaryField(null=True, blank=True)
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     USERNAME_FIELD = "email"
@@ -54,7 +54,7 @@ class Lesson(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()
     order_index = models.IntegerField()
-    images = models.BinaryField(null=True, blank=True)
+    images = models.ImageField(upload_to='lessons/', null=True, blank=True)
 
     def __str__(self)->str:
         return self.title
@@ -83,7 +83,7 @@ class HomeworkSubmission(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     homework = models.ForeignKey(Homework, on_delete=models.CASCADE, related_name="submissions")
     messages = models.JSONField()
-    files = models.BinaryField(null=True, blank=True)
+    files = models.FileField(upload_to='submissions/', null=True, blank=True)
     url = models.URLField(null=True, blank=True)
     submitted_at = models.DateTimeField(auto_now_add=True)
     score = models.IntegerField(null=True, blank=True)
