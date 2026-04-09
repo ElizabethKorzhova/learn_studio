@@ -1,12 +1,14 @@
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.serializers import Serializer
-from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiParameter
+from rest_framework.serializers import Serializer, CharField
+from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiParameter, inline_serializer
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
 
 from ls.models import Course, User, Lesson, Enrollment, Homework
 from . import serializers
@@ -14,21 +16,25 @@ from . import permissions
 
 
 class AuthViewSet(viewsets.GenericViewSet):
-    permission_classes = [AllowAny]
+    def get_permissions(self):
+        if self.action == "logout":
+            return [IsAuthenticated()]
+        return [AllowAny()]
 
     def get_serializer_class(self):
-        if self.action == "register":
-            return serializers.RegisterSerializer
-        if self.action == "login":
-            return serializers.LoginSerializer
-        return Serializer
+        return serializers.RegisterSerializer if self.action == "register" \
+            else serializers.LoginSerializer if self.action == "login" else Serializer
 
     @action(methods=["post"], detail=False)
     def register(self, request):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "User has been created"}, status=status.HTTP_201_CREATED)
+            user = serializer.save()
+            refresh = RefreshToken.for_user(user)
+            return Response({"message": "User has been created",
+                             "refresh": str(refresh),
+                             "access": str(refresh.access_token)},
+                            status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=["post"], detail=False)
@@ -40,15 +46,38 @@ class AuthViewSet(viewsets.GenericViewSet):
                 password=serializer.validated_data["password"]
             )
             if user:
-                login(request, user)
-                return Response({"message": "Logged in successfully"})
-            return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+                refresh = RefreshToken.for_user(user)
+                return Response({"message": "Logged in successfully",
+                                 "refresh": str(refresh),
+                                 "access": str(refresh.access_token),
+                                 "user": serializers.UserSerializer(user).data},
+                                status=status.HTTP_200_OK)
+            return Response({"error": "Invalid credentials"},
+                            status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        request=inline_serializer(
+            name="LogoutRequest",
+            fields={
+                "refresh": CharField(help_text="Refresh token"),
+            }
+        ),
+    )
     @action(methods=["post"], detail=False)
     def logout(self, request):
-        logout(request)
-        return Response({"message": "Logged out"})
+        refresh_token = request.data.get("refresh")
+        if not refresh_token:
+            return Response({"error": "Refresh token is required for logout"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"message": "Logged out successfully"},
+                            status=status.HTTP_200_OK)
+        except TokenError:
+            return Response({"error": "Token is invalid or already blacklisted"},
+                            status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserViewSet(mixins.RetrieveModelMixin,
