@@ -1,8 +1,10 @@
+from django.contrib.auth import authenticate, login, logout
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from django.shortcuts import get_object_or_404
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.serializers import Serializer
 from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiParameter
 from django_filters.rest_framework import DjangoFilterBackend
 
@@ -11,8 +13,45 @@ from . import serializers
 from . import permissions
 
 
+class AuthViewSet(viewsets.GenericViewSet):
+    permission_classes = [AllowAny]
+
+    def get_serializer_class(self):
+        if self.action == "register":
+            return serializers.RegisterSerializer
+        if self.action == "login":
+            return serializers.LoginSerializer
+        return Serializer
+
+    @action(methods=["post"], detail=False)
+    def register(self, request):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "User has been created"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=["post"], detail=False)
+    def login(self, request):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            user = authenticate(
+                email=serializer.validated_data["email"],
+                password=serializer.validated_data["password"]
+            )
+            if user:
+                login(request, user)
+                return Response({"message": "Logged in successfully"})
+            return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=["post"], detail=False)
+    def logout(self, request):
+        logout(request)
+        return Response({"message": "Logged out"})
+
+
 class UserViewSet(mixins.RetrieveModelMixin,
-                  mixins.ListModelMixin,
                   viewsets.GenericViewSet):
     queryset = User.objects.all()
 
@@ -25,17 +64,17 @@ class UserViewSet(mixins.RetrieveModelMixin,
     def me(self, request):
         user = request.user
 
-        if request.method == "get":
+        if request.method == "GET":
             serializer = self.get_serializer(user)
             return Response(serializer.data)
 
-        elif request.method == "patch":
+        elif request.method == "PATCH":
             serializer = self.get_serializer(user, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data)
 
-        elif request.method == "delete":
+        elif request.method == "DELETE":
             user.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 

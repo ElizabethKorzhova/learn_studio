@@ -1,6 +1,24 @@
 from rest_framework import serializers
+from django.contrib.auth.hashers import make_password
 
 from ls import models
+
+
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = models.User
+        fields = ["email", "username", "password", "first_name", "last_name", "role"]
+
+    def create(self, validated_data):
+        validated_data["password"] = make_password(validated_data["password"])
+        return super().create(validated_data)
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
 
 
 class SocialLinkSerializer(serializers.ModelSerializer):
@@ -26,7 +44,7 @@ class UserShortSerializer(serializers.ModelSerializer):
 
 
 class MyProfileSerializer(serializers.ModelSerializer):
-    social_links = SocialLinkSerializer(many=True, read_only=True)
+    social_links = SocialLinkSerializer(many=True)
 
     class Meta:
         model = models.User

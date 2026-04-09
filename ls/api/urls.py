@@ -5,6 +5,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 from . import views
 
 router = DefaultRouter()
+router.register(r"auth", views.AuthViewSet, basename="auth")
 router.register(r"users", views.UserViewSet)
 router.register(r"courses", views.CourseViewSet)
 router.register(r"lessons", views.LessonViewSet)
