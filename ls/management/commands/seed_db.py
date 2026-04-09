@@ -14,6 +14,8 @@ from faker import Faker
 
 from ls.models import User, Course, Lesson, Homework, SocialLink, Enrollment, HomeworkSubmission
 
+PASSWORD = "12345pass"
+
 
 class Command(BaseCommand):
     """Custom Django management command to seed the database with fake data.
@@ -44,6 +46,7 @@ class Command(BaseCommand):
             self.stdout.write("Database cleared.")
 
         self.stdout.write("Starting database seeding...")
+        self.stdout.write(f"Password for all fake users: {PASSWORD}")
         fake = Faker()
         instructors = []
         students = []
@@ -80,7 +83,7 @@ class Command(BaseCommand):
 
             user = User.objects.create(
                 username=fake.unique.user_name(),
-                password=make_password(fake.password()),
+                password=make_password(PASSWORD),
                 email=fake.unique.email(),
                 first_name=fake.first_name(),
                 last_name=fake.last_name(),

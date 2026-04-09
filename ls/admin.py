@@ -3,6 +3,7 @@ This module defines the configuration of the admin panel and the registration of
 from typing import List, Any
 
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.forms import ModelChoiceField
 from django.http import HttpRequest
 from django.db.models import ForeignKey
@@ -30,8 +31,19 @@ class HomeworkInline(admin.StackedInline):
 
 
 @admin.register(User)
-class UserAdmin(admin.ModelAdmin):
+class UserAdmin(BaseUserAdmin):
     """Admin configuration for the User model."""
+    fieldsets = BaseUserAdmin.fieldsets + (
+        (None, {"fields": ("role", "phone", "avatar")}),
+    )
+
+    add_fieldsets = BaseUserAdmin.add_fieldsets + (
+        (None, {
+            "classes": ("wide",),
+            "fields": ("email", "role", "first_name", "last_name"),
+        }),
+    )
+
     list_display = ("username", "email", "role")
     readonly_fields = ["id", "created_at"]
 
