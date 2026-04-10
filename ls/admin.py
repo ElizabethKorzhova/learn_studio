@@ -9,7 +9,7 @@ from django.http import HttpRequest
 from django.db.models import ForeignKey
 
 from .models import (User, Course, Lesson, Homework, HomeworkSubmission,
-                     Enrollment, SocialLink, AIFeedback, Transaction)
+                     Enrollment, SocialLink, AIFeedback, Transaction, Message)
 
 
 class SocialLinkInline(admin.TabularInline):
@@ -124,6 +124,16 @@ class HomeworkSubmissionAdmin(admin.ModelAdmin):
     search_help_text = "Search by the title of the homework or the username or the email"
     search_fields = ("homework__title", "user__username", "user__email",
                      "homework__created_by__email")
+
+
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    """Admin configuration for the Message model."""
+    list_display = ("homework_submission__homework__title", "sender__username", "sender__email", "created_at")
+    readonly_fields = ("id", "created_at")
+
+    search_help_text = "Search by the username or the email of the sender"
+    search_fields = ("sender__username", "sender__email")
 
 
 @admin.register(AIFeedback)

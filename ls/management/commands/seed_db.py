@@ -12,7 +12,8 @@ from django.contrib.auth.hashers import make_password
 from django.utils import timezone
 from faker import Faker
 
-from ls.models import User, Course, Lesson, Homework, SocialLink, Enrollment, HomeworkSubmission
+from ls.models import (User, Course, Lesson, Homework, SocialLink,
+                       Enrollment, HomeworkSubmission, Message)
 
 PASSWORD = "12345pass"
 
@@ -151,7 +152,7 @@ class Command(BaseCommand):
             ))
         homeworks = Homework.objects.bulk_create(homeworks_to_create)
 
-        submissions_to_create, enrollments_to_create = [], []
+        submissions_to_create, enrollments_to_create, messages_to_create = [], [], []
 
         for enrolled_student in enrolled_students:
             submitted_count = 0
@@ -161,8 +162,6 @@ class Command(BaseCommand):
                     submissions_to_create.append(HomeworkSubmission(
                         user=enrolled_student,
                         homework=homework,
-                        messages={"message": fake.text(),
-                                  "feedback": fake.text() if is_completed else ""},
                         score=random.randint(60, 100) if is_completed else None,
                     ))
                     submitted_count += 1
@@ -180,5 +179,13 @@ class Command(BaseCommand):
                 attendance=round(random.uniform(0.0, 1.0), 2),
             ))
 
-        HomeworkSubmission.objects.bulk_create(submissions_to_create)
+        created_submissions = HomeworkSubmission.objects.bulk_create(submissions_to_create)
+        for submission in created_submissions:
+            messages_to_create.append(Message(
+                homework_submission=submission,
+                sender=random.choice([submission.user, instructor]),
+                message_text=fake.text(),
+            ))
+
+        Message.objects.bulk_create(messages_to_create)
         Enrollment.objects.bulk_create(enrollments_to_create)
