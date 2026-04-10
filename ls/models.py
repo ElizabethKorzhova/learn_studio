@@ -82,7 +82,7 @@ class HomeworkSubmission(models.Model):
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     homework = models.ForeignKey(Homework, on_delete=models.CASCADE, related_name="submissions")
-    messages = models.JSONField()
+    #messages = models.JSONField() прибрала тому що створили окремо таблицю Messages
     files = models.FileField(upload_to='submissions/', null=True, blank=True)
     url = models.URLField(null=True, blank=True)
     submitted_at = models.DateTimeField(auto_now_add=True)
@@ -128,3 +128,23 @@ class Transaction(models.Model):
     status = models.CharField(max_length=50)
     payment_data = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+#-------Messages
+class Message(models.Model):
+    """Represents a message made by a user for homework submission
+    """
+    homework_submission = models.ForeignKey(
+        HomeworkSubmission,
+        on_delete=models.CASCADE,
+        related_name="messages"
+    )
+    sender = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="sent_messages"
+    )
+    message_text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.sender.email} -> submission {self.homework_submission.id}"
