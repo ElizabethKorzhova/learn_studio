@@ -114,7 +114,7 @@ class EnrollmentSerializer(serializers.ModelSerializer):
         model = models.Enrollment
         fields = ["id", "user", "course", "course_title", "user_email", "enrolled_at", "user_progress",
                   "attendance", "updated_at"]
-        read_only_fields = ["id", "user", "enrolled_at", "updated_at"]
+        read_only_fields = ["id", "user", "user_progress", "attendance", "enrolled_at", "updated_at"]
 
 
 class ParticipantSerializer(serializers.ModelSerializer):
@@ -122,17 +122,35 @@ class ParticipantSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Enrollment
-        fields = ['user']
+        fields = ["user"]
 
 
-class HomeworkSubmissionSerializer(serializers.ModelSerializer):
-    user_email = serializers.EmailField(source="user.email", read_only=True)
-    homework_title = serializers.CharField(source="homework.title", read_only=True)
+class MessageSerializer(serializers.ModelSerializer):
+    sender = UserShortSerializer(read_only=True)
+
+    class Meta:
+        model = models.Message
+        fields = "__all__"
+        read_only_fields = ["homework_submission", "sender", "created_at"]
+
+
+class SubmissionCreateSerializer(serializers.ModelSerializer):
+    user = UserShortSerializer(read_only=True)
 
     class Meta:
         model = models.HomeworkSubmission
-        fields = [
-            "id", "user", "user_email", "homework", "homework_title",
-            "messages", "files", "url", "submitted_at", "score"
-        ]
-        read_only_fields = ["id", "user", "submitted_at", "score"]
+        fields = ["id", "homework", "user", "files", "url"]
+        read_only_fields = ["id", "homework"]
+
+
+class SubmissionSerializer(serializers.ModelSerializer):
+    user = UserShortSerializer(read_only=True)
+
+    class Meta:
+        model = models.HomeworkSubmission
+        fields = "__all__"
+        read_only_fields = ["user", "score", "submitted_at"]
+
+
+class GradeSerializer(serializers.Serializer):
+    score = serializers.IntegerField(min_value=0, max_value=100)

@@ -26,7 +26,7 @@ class SocialLink(models.Model):
     platform_name = models.CharField(max_length=100)
     url = models.URLField()
 
-    def __str__(self) ->str:
+    def __str__(self) -> str:
         return f"{self.user.email} - {self.platform_name}"
 
 
@@ -42,7 +42,7 @@ class Course(models.Model):
     duration = models.IntegerField()  # course_long
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self)->str:
+    def __str__(self) -> str:
         return self.title
 
 
@@ -56,7 +56,7 @@ class Lesson(models.Model):
     order_index = models.IntegerField()
     images = models.ImageField(upload_to='lessons/', null=True, blank=True)
 
-    def __str__(self)->str:
+    def __str__(self) -> str:
         return self.title
 
 
@@ -72,7 +72,7 @@ class Homework(models.Model):
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     deadline_date = models.DateField()
 
-    def __str__(self)->str:
+    def __str__(self) -> str:
         return self.title
 
 
@@ -82,13 +82,13 @@ class HomeworkSubmission(models.Model):
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     homework = models.ForeignKey(Homework, on_delete=models.CASCADE, related_name="submissions")
-    #messages = models.JSONField() прибрала тому що створили окремо таблицю Messages
+    # messages = models.JSONField() прибрала тому що створили окремо таблицю Messages
     files = models.FileField(upload_to='submissions/', null=True, blank=True)
     url = models.URLField(null=True, blank=True)
     submitted_at = models.DateTimeField(auto_now_add=True)
     score = models.IntegerField(null=True, blank=True)
 
-    def __str__(self)->str:
+    def __str__(self) -> str:
         return f"{self.user.email} - {self.homework.title}"
 
 
@@ -109,8 +109,8 @@ class Enrollment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="enrollments")
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments")
     course_status = models.CharField(max_length=50)
-    user_progress = models.IntegerField()
-    attendance = models.FloatField()
+    user_progress = models.IntegerField(default=0)
+    attendance = models.FloatField(default=0.0)
     enrolled_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -129,7 +129,8 @@ class Transaction(models.Model):
     payment_data = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
 
-#-------Messages
+
+# -------Messages
 class Message(models.Model):
     """Represents a message made by a user for homework submission
     """
