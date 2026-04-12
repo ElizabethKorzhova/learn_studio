@@ -39,7 +39,7 @@ def test_instructor_can_create_homework(api_client, instructor_user, lesson):
     assert res.data["title"] == "HW 1"
 
 
-# ⇓⇓⇓⇓ цей тест ми не пройшли!!!! Студент може створити домашку !!!!
+
 @pytest.mark.django_db
 def test_student_cannot_create_homework(api_client, student_user, lesson):
     """ Test that a student can not create a homework
@@ -171,3 +171,4 @@ def test_instructor_can_delete_homework(api_client, instructor_user, homework):
 
     assert res.status_code == status.HTTP_204_NO_CONTENT
     assert not Homework.objects.filter(id=homework.id).exists()
+# тести пройдені

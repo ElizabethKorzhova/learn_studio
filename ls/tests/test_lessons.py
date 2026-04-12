@@ -162,3 +162,4 @@ def test_instructor_can_delete_lesson(api_client, instructor_user, lesson):
 
     assert res.status_code == status.HTTP_204_NO_CONTENT
     assert not Lesson.objects.filter(id=lesson.id).exists()
+# тести пройдені

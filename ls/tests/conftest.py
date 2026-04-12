@@ -129,5 +129,15 @@ def homework(lesson):
         title="Test HW",
         task="Solve it",
         deadline="2026-01-10T10:00:00Z",
+        deadline_date="2026-01-10",
         complexity=1
+    )
+
+
+@pytest.fixture
+def enrollment(student_user, course):
+    return Enrollment.objects.create(
+        user=student_user,
+        course=course,
+        course_status="active"
     )
