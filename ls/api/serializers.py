@@ -1,3 +1,6 @@
+"""This module provides DRF serializers for LMS."""
+from typing import Dict, Any
+
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 
@@ -5,29 +8,42 @@ from ls import models
 
 
 class RegisterSerializer(serializers.ModelSerializer):
+    """Serializer for register user."""
     password = serializers.CharField(write_only=True)
 
     class Meta:
         model = models.User
         fields = ["email", "username", "password", "first_name", "last_name", "role"]
 
-    def create(self, validated_data):
+    def create(self, validated_data: Dict[str, Any]) -> models.User:
+        """
+        Create a new user with hashed password.
+
+        Args:
+            validated_data (Dict[str, Any]): data used to create a new user
+        Returns:
+            models.User: Created user
+        """
         validated_data["password"] = make_password(validated_data["password"])
         return super().create(validated_data)
 
 
 class LoginSerializer(serializers.Serializer):
+    """Serializer for login user."""
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
 
 class SocialLinkSerializer(serializers.ModelSerializer):
+    """Serializer for social links."""
+
     class Meta:
         model = models.SocialLink
         fields = ["platform_name", "url"]
 
 
 class UserSerializer(serializers.ModelSerializer):
+    """Serializer for user."""
     social_links = SocialLinkSerializer(many=True, read_only=True)
 
     class Meta:
@@ -37,6 +53,8 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserShortSerializer(serializers.ModelSerializer):
+    """Serializer for user in a short form."""
+
     class Meta:
         model = models.User
         fields = ["id", "first_name", "last_name"]
@@ -44,6 +62,7 @@ class UserShortSerializer(serializers.ModelSerializer):
 
 
 class MyProfileSerializer(serializers.ModelSerializer):
+    """Serializer for profile data."""
     social_links = SocialLinkSerializer(many=True)
 
     class Meta:
@@ -53,12 +72,16 @@ class MyProfileSerializer(serializers.ModelSerializer):
 
 
 class LessonShortSerializer(serializers.ModelSerializer):
+    """Serializer for lesson in a short form."""
+
     class Meta:
         model = models.Lesson
         fields = ["id", "title", "order_index"]
 
 
 class LessonSerializer(serializers.ModelSerializer):
+    """Serializer for lesson."""
+
     class Meta:
         model = models.Lesson
         fields = ["id", "title", "content", "order_index", "images"]
@@ -66,6 +89,7 @@ class LessonSerializer(serializers.ModelSerializer):
 
 
 class HomeworkSerializer(serializers.ModelSerializer):
+    """Serializer for homework."""
     created_by = UserShortSerializer(read_only=True)
 
     class Meta:
@@ -75,6 +99,7 @@ class HomeworkSerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(serializers.ModelSerializer):
+    """Serializer for course."""
     instructor = UserSerializer(read_only=True)
     is_enrolled = serializers.SerializerMethodField()
     user_stats = serializers.SerializerMethodField()
@@ -100,6 +125,7 @@ class CourseSerializer(serializers.ModelSerializer):
 
 
 class CourseDetailSerializer(CourseSerializer):
+    """Serializer for course with lessons."""
     lessons = LessonShortSerializer(many=True, read_only=True)
 
     class Meta(CourseSerializer.Meta):
@@ -107,6 +133,7 @@ class CourseDetailSerializer(CourseSerializer):
 
 
 class EnrollmentSerializer(serializers.ModelSerializer):
+    """Serializer for enrollment."""
     course_title = serializers.CharField(source="course.title", read_only=True)
     user_email = serializers.EmailField(source="user.email", read_only=True)
 
@@ -118,6 +145,7 @@ class EnrollmentSerializer(serializers.ModelSerializer):
 
 
 class ParticipantSerializer(serializers.ModelSerializer):
+    """Serializer for participant of the course."""
     user = UserShortSerializer(read_only=True)
 
     class Meta:
@@ -126,6 +154,7 @@ class ParticipantSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
+    """Serializer for message."""
     sender = UserShortSerializer(read_only=True)
 
     class Meta:
@@ -135,6 +164,7 @@ class MessageSerializer(serializers.ModelSerializer):
 
 
 class SubmissionCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating submission."""
     user = UserShortSerializer(read_only=True)
 
     class Meta:
@@ -144,6 +174,7 @@ class SubmissionCreateSerializer(serializers.ModelSerializer):
 
 
 class SubmissionSerializer(serializers.ModelSerializer):
+    """Serializer for submission."""
     user = UserShortSerializer(read_only=True)
 
     class Meta:
@@ -153,4 +184,5 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
 
 class GradeSerializer(serializers.Serializer):
+    """Serializer for grading submission."""
     score = serializers.IntegerField(min_value=0, max_value=100)

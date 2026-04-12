@@ -28,7 +28,6 @@ def test_create_submission_success(api_client, student_user, homework, enrollmen
     assert HomeworkSubmission.objects.count() == 1
 
 
-# цей тест впав !!!!!⇓⇓⇓⇓⇓⇓
 @pytest.mark.django_db
 def test_create_submission_without_enrollment(api_client, student_user, homework):
     """Student creates a submission without enrollment
@@ -81,7 +80,6 @@ def test_instructor_sees_course_submissions(api_client, instructor_user, submiss
     assert len(response.data) == 1
 
 
-# цей тест впав !!!!!⇓⇓⇓⇓⇓⇓
 @pytest.mark.django_db
 def test_retrieve_submission(api_client, student_user, submission):
     """Retrieve a single submission by ID
@@ -95,7 +93,6 @@ def test_retrieve_submission(api_client, student_user, submission):
     assert response.data["id"] == submission.id
 
 
-# цей тест впав !!!!!⇓⇓⇓⇓⇓⇓
 @pytest.mark.django_db
 def test_instructor_can_grade(api_client, instructor_user, submission):
     """Instructor assigns a score to a submission
@@ -123,7 +120,6 @@ def test_student_cannot_grade(api_client, student_user, submission):
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-# цей тест впав !!!!!⇓⇓⇓⇓⇓⇓
 @pytest.mark.django_db
 def test_get_messages(api_client, student_user, submission):
     """Retrieve messages related to a submission
@@ -143,7 +139,6 @@ def test_get_messages(api_client, student_user, submission):
     assert len(response.data) == 1
 
 
-# цей тест впав !!!!!⇓⇓⇓⇓⇓⇓
 @pytest.mark.django_db
 def test_send_message(api_client, student_user, submission):
     """Student sends a message

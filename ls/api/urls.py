@@ -1,8 +1,10 @@
+"""This module provides URL configuration for the API."""
 from django.urls import path
 from django.urls import include
 from rest_framework.routers import DefaultRouter
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from rest_framework_simplejwt.views import TokenRefreshView
+
 from . import views
 
 router = DefaultRouter()
