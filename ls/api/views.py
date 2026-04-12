@@ -178,15 +178,23 @@ class LessonViewSet(viewsets.ModelViewSet):
         if not course_id:
             return Lesson.objects.none()
 
+        course = get_object_or_404(Course, id=course_id)
         queryset = Lesson.objects.filter(course_id=course_id)
 
         if user.role == "admin":
             return queryset.order_by("order_index")
+
         if user.role == "instructor":
+            if course.instructor != user:
+                raise PermissionDenied("You are not the instructor for this course")
             return queryset.filter(course__instructor=user).order_by("order_index")
+
         if user.role == "student":
+            if not course.enrollments.filter(user=user).exists():
+                raise PermissionDenied("You are not enrolled for this course")
             return queryset.filter(course__enrollments__user=user).order_by("order_index")
-        return Lesson.objects.none()
+
+        raise PermissionDenied("Access denied")
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -235,14 +243,23 @@ class HomeworkViewSet(viewsets.ModelViewSet):
         if not lesson_id:
             return Homework.objects.none()
 
+        lesson = get_object_or_404(Lesson, id=lesson_id)
         queryset = Homework.objects.filter(lesson_id=lesson_id)
+
         if user.role == "admin":
             return queryset
+
         if user.role == "instructor":
+            if lesson.course.instructor != user:
+                raise PermissionDenied("You are not the instructor for this course")
             return queryset.filter(lesson__course__instructor=user)
+
         if user.role == "student":
+            if not lesson.course.enrollments.filter(user=user).exists():
+                raise PermissionDenied("You are not enrolled for this course")
             return queryset.filter(lesson__course__enrollments__user=user)
-        return Homework.objects.none()
+
+        raise PermissionDenied("Access denied")
 
     def perform_create(self, serializer):
         user = self.request.user

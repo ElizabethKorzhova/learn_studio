@@ -9,4 +9,5 @@ Faker==40.12.0
 psycopg2-binary==2.9.11
 python-dotenv==1.2.2
 pytest==9.0.3
+pytest-django==4.12.0
 sqlparse==0.5.5
