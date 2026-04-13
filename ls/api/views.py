@@ -16,7 +16,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
-from ls.models import Course, User, Lesson, Enrollment, Homework, HomeworkSubmission
+from ls.models import Course, User, Lesson, Enrollment, Homework, HomeworkSubmission, Transaction
 from . import serializers, permissions
 
 
@@ -624,3 +624,64 @@ class HomeworkSubmissionViewSet(mixins.CreateModelMixin,
                 homework_submission=submission
             )
             return Response(serializer.data)
+
+
+class TransactionViewSet(viewsets.ModelViewSet):
+    """ViewSet for Transaction management endpoint
+    """
+    queryset = Transaction.objects.all()
+    serializer_class = serializers.TransactionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """The user can only see their own transactions
+        """
+        return Transaction.objects.filter(user=self.request.user)
+
+    def get_serializer_class(self):
+        """Returns the appropriate serializer class based on the current action
+        """
+        if self.action == "confirm":
+            return serializers.TransactionConfirmSerializer
+        return serializers.TransactionSerializer
+
+    def perform_create(self, serializer):
+        """Creates a new transaction for the authenticated user
+        """
+
+        course = serializer.validated_data["course"]
+
+        serializer.save(
+            user=self.request.user,
+            amount=course.price,
+            status="pending"
+        )
+
+    @action(detail=True, methods=["post"])
+    def confirm(self, request, pk=None):
+        """Confirms a transaction payment and enrolls the user in the course
+        Args:
+        request (Request): The HTTP request containing optional payment data
+        pk (int, optional): Primary key of the transaction
+
+        Returns:
+        Response: Success message indicating payment status
+        """
+        transaction = get_object_or_404(Transaction, pk=pk)
+
+        if transaction.user != request.user:
+            raise PermissionDenied("Not your transaction")
+
+        if transaction.status == "success":
+            return Response({"message": "Already paid"})
+
+        transaction.status = "success"
+        transaction.payment_data = request.data.get("payment_data", {})
+        transaction.save()
+
+        Enrollment.objects.get_or_create(
+            user=transaction.user,
+            course=transaction.course
+        )
+
+        return Response({"message": "Payment successful"})

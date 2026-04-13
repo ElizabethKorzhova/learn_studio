@@ -153,6 +153,67 @@ class ParticipantSerializer(serializers.ModelSerializer):
         fields = ["user"]
 
 
+class TransactionSerializer(serializers.ModelSerializer):
+    """Serializer for transaction"""
+
+    user = UserShortSerializer(read_only=True)
+    course_title = serializers.CharField(source="course.title", read_only=True)
+
+    payment_data = serializers.JSONField(required=False, default=dict)
+
+    class Meta:
+        model = models.Transaction
+        fields = [
+            "id",
+            "user",
+            "course",
+            "course_title",
+            "amount",
+            "status",
+            "payment_data",
+            "created_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "user",
+            "amount",
+            "status",
+            "created_at",
+        ]
+
+    def validate(self, attrs):
+        """Validates that the user has not already successfully purchased the course
+        Args:
+        attrs (dict): Incoming validated data from the serializer
+
+        Returns:
+        dict: The validated attributes if validation passes
+
+        Raises:
+        serializers.ValidationError: If the user has already purchased the course
+        """
+        user = self.context["request"].user
+        course = attrs.get("course")
+
+        if models.Transaction.objects.filter(
+                user=user,
+                course=course,
+                status="success"
+        ).exists():
+            raise serializers.ValidationError(
+                "You already purchased this course"
+            )
+
+        return attrs
+
+
+class TransactionConfirmSerializer(serializers.Serializer):
+    """Serializer for transaction confirmation
+    """
+    payment_data = serializers.JSONField()
+
+
 class MessageSerializer(serializers.ModelSerializer):
     """Serializer for message."""
     sender = UserShortSerializer(read_only=True)
