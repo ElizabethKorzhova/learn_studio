@@ -20,6 +20,9 @@ from ls.models import Course, User, Lesson, Enrollment, Homework, HomeworkSubmis
 from . import serializers, permissions
 from ls.models import LessonProgress
 from .utils import update_course_progress
+from ls.services.payment_service import confirm_payment
+from ls.services.homework_service import grade_submission
+from ls.services.notification_service import create_notification
 
 
 class AuthViewSet(viewsets.GenericViewSet):
@@ -581,21 +584,17 @@ class HomeworkSubmissionViewSet(mixins.CreateModelMixin,
         serializer.save(user=user, homework=homework)
 
     @action(detail=True, methods=["patch"])
-    def grade(self, request: Request, pk: int | None = None) -> Response:
-        """
-        Grades the homework submission.
-
-        Args:
-            request (Request): the request object
-            pk (int | None): id
-        Returns:
-           Response: API response with success message after grading
-        """
+    def grade(self, request, pk=None):
         submission = self.get_object()
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        submission.score = serializer.validated_data["score"]
-        submission.save()
+
+        grade_submission(
+            submission,
+            serializer.validated_data["score"]
+        )
+
         return Response({"message": "Successfully graded"})
 
     @action(detail=True, methods=["get", "post"])
@@ -613,19 +612,25 @@ class HomeworkSubmissionViewSet(mixins.CreateModelMixin,
         submission = self.get_object()
 
         if request.method == "GET":
-            messages = submission.messages.all()
+            messages = submission.messages.all().order_by("created_at")
             serializer = serializers.MessageSerializer(messages, many=True)
             return Response(serializer.data)
 
-        if request.method == "POST":
-            serializer = serializers.MessageSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
+        serializer = serializers.MessageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-            serializer.save(
-                sender=request.user,
-                homework_submission=submission
-            )
-            return Response(serializer.data)
+        message = serializer.save(
+            sender=request.user,
+            homework_submission=submission
+        )
+
+        create_notification(
+            user=submission.user,
+            message="New message on your homework",
+            type_="message"
+        )
+
+        return Response(serializers.MessageSerializer(message).data)
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
@@ -661,30 +666,12 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def confirm(self, request, pk=None):
-        """Confirms a transaction payment and enrolls the user in the course
-        Args:
-        request (Request): The HTTP request containing optional payment data
-        pk (int, optional): Primary key of the transaction
-
-        Returns:
-        Response: Success message indicating payment status
-        """
         transaction = get_object_or_404(Transaction, pk=pk)
 
         if transaction.user != request.user:
             raise PermissionDenied("Not your transaction")
 
-        if transaction.status == "success":
-            return Response({"message": "Already paid"})
-
-        transaction.status = "success"
-        transaction.payment_data = request.data.get("payment_data", {})
-        transaction.save()
-
-        Enrollment.objects.get_or_create(
-            user=transaction.user,
-            course=transaction.course
-        )
+        confirm_payment(transaction)  # 👈 ТУТ SERVICE
 
         return Response({"message": "Payment successful"})
 
@@ -750,3 +737,33 @@ class LessonProgressViewSet(mixins.ListModelMixin,
             progress.save()
 
         update_course_progress(self.request.user, progress.lesson.course)
+
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    """ViewSet for user notifications
+    """
+
+    serializer_class = serializers.NotificationSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ["get", "patch", "delete"]
+
+    def get_queryset(self):
+        """User can see only own notifications
+        """
+        return self.request.user.notifications.all()
+
+    @action(detail=False, methods=["patch"])
+    def mark_all_as_read(self, request):
+        """Mark all notifications as read
+        """
+        updated = request.user.notifications.filter(is_read=False).update(is_read=True)
+        return Response({"marked_as_read": updated})
+
+    @action(detail=True, methods=["patch"])
+    def mark_as_read(self, request, pk=None):
+        """Mark single notification as read
+        """
+        notification = self.get_object()
+        notification.is_read = True
+        notification.save()
+        return Response({"message": "Notification marked as read"})

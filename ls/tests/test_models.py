@@ -206,8 +206,13 @@ class HomeworkSubmissionTest(TestCase):
         """
         submission = HomeworkSubmission.objects.create(
             user=self.user,
-            homework=self.homework,
-            messages={"answer": "test"}
+            homework=self.homework
+        )
+
+        Message.objects.create(
+            homework_submission=submission,
+            sender=self.user,
+            message_text="test"
         )
 
         self.assertEqual(submission.user, self.user)
@@ -328,10 +333,15 @@ class AIFeedbackModelTest(TestCase):
             deadline_date="2025-01-10"
         )
 
-        self.submission: HomeworkSubmission = HomeworkSubmission.objects.create(
+        self.submission = HomeworkSubmission.objects.create(
             user=self.user,
-            homework=self.homework,
-            messages={"msg": "test"}
+            homework=self.homework
+        )
+
+        Message.objects.create(
+            homework_submission=self.submission,
+            sender=self.user,
+            message_text="test"
         )
 
     def test_create_feedback(self) -> None:

@@ -8,6 +8,8 @@ from ls.models import Lesson
 from ls.models import HomeworkSubmission, Homework, Enrollment
 from rest_framework_simplejwt.tokens import RefreshToken
 
+
+
 User = get_user_model()
 
 
@@ -141,3 +143,71 @@ def enrollment(student_user, course):
         course=course,
         course_status="active"
     )
+
+
+
+
+
+
+@pytest.fixture
+def user_factory(db):
+    def create_user(**kwargs):
+        return User.objects.create_user(
+            email=kwargs.get("email", "test@test.com"),
+            username=kwargs.get("username", "test"),
+            password="pass",
+            role=kwargs.get("role", "student")
+        )
+    return create_user
+
+
+@pytest.fixture
+def course_factory(db):
+    def create_course(instructor=None):
+        if not instructor:
+            instructor = User.objects.create_user(
+                email="inst@test.com",
+                username="inst",
+                password="pass",
+                role="instructor"
+            )
+
+        return Course.objects.create(
+            instructor=instructor,
+            title="Test Course",
+            description="Test",
+            price=100,
+            start_at="2026-01-01T00:00:00Z",
+            duration=10
+        )
+
+    return create_course
+
+@pytest.fixture
+def submission_factory(user_factory, course_factory):
+    def create_submission(**kwargs):
+        user = user_factory()
+        course = course_factory()
+
+        lesson = course.lessons.create(
+            title="Lesson 1",
+            content="Test",
+            order_index=1
+        )
+
+        homework = lesson.homeworks.create(
+            title="HW",
+            task="Test task",
+            deadline="2026-01-01T00:00:00Z",
+            complexity=1,
+            created_by=user,
+            deadline_date="2026-01-01"
+        )
+
+        return HomeworkSubmission.objects.create(
+            user=user,
+            homework=homework,
+            **kwargs
+        )
+
+    return create_submission

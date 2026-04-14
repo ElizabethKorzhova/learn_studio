@@ -268,3 +268,13 @@ class LessonProgressSerializer(serializers.ModelSerializer):
         model = models.LessonProgress
         fields = ["id", "lesson", "is_completed", "completed_at"]
         read_only_fields = ["id", "completed_at"]
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    """Serializer for notification.
+    """
+
+    class Meta:
+        model = models.Notification
+        fields = "__all__"
+        read_only_fields = ["id", "user", "created_at"]

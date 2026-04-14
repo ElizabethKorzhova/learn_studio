@@ -150,7 +150,8 @@ class Message(models.Model):
     def __str__(self):
         return f"{self.sender.email} -> submission {self.homework_submission.id}"
 
-#------Progress
+
+# ------Progress
 class LessonProgress(models.Model):
     """Tracks user progress per lesson"""
 
@@ -173,3 +174,36 @@ class LessonProgress(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.lesson.title}"
+
+
+# -----Notifications
+class Notification(models.Model):
+    """Represents a system notification for a user"""
+
+    TYPE_CHOICES = [
+        ("homework", "Homework"),
+        ("grade", "Grade"),
+        ("payment", "Payment"),
+        ("course", "Course"),
+        ("message", "Message"),
+    ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="notifications"
+    )
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    type = models.CharField(max_length=50, choices=TYPE_CHOICES)
+    is_read = models.BooleanField(default=False)
+
+    related_id = models.IntegerField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.title}"
