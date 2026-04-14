@@ -16,6 +16,7 @@ router.register(r"homeworks", views.HomeworkViewSet)
 router.register(r"enrollments", views.EnrollmentViewSet)
 router.register(r"submissions", views.HomeworkSubmissionViewSet)
 router.register(r'transactions', views.TransactionViewSet, basename='transactions')
+router.register(r'lesson-progress', views.LessonProgressViewSet, basename='lesson-progress')
 
 urlpatterns = [
     path("", include(router.urls)),

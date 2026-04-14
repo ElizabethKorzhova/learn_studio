@@ -1,7 +1,7 @@
 """This module provides helper functions for LMS."""
 from typing import Union
 
-from ls.models import Course, Lesson, Homework, HomeworkSubmission, Enrollment
+from ls.models import Course, Lesson, Homework, HomeworkSubmission, Enrollment, LessonProgress
 
 
 def get_course_from_obj(
@@ -25,3 +25,26 @@ def get_course_from_obj(
     if isinstance(obj, HomeworkSubmission):
         return obj.homework.lesson.course
     return None
+
+
+def update_course_progress(user, course):
+    """Updates the progress of a course
+        """
+    total_lessons = course.lessons.count()
+
+    if total_lessons == 0:
+        return 0
+
+    completed_lessons = LessonProgress.objects.filter(
+        user=user,
+        lesson__course=course,
+        is_completed=True
+    ).count()
+
+    progress = int((completed_lessons / total_lessons) * 100)
+
+    Enrollment.objects.filter(user=user, course=course).update(
+        user_progress=progress
+    )
+
+    return progress

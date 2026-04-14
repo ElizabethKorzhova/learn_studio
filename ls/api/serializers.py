@@ -103,12 +103,13 @@ class CourseSerializer(serializers.ModelSerializer):
     instructor = UserSerializer(read_only=True)
     is_enrolled = serializers.SerializerMethodField()
     user_stats = serializers.SerializerMethodField()
+    progress = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Course
         fields = [
             "id", "is_enrolled", "title", "description", "price",
-            "start_at", "duration", "created_at", 'user_stats', "instructor"
+            "start_at", "duration", "created_at", 'user_stats', "instructor", "progress"
         ]
         read_only_fields = ["id", "created_at"]
 
@@ -122,6 +123,16 @@ class CourseSerializer(serializers.ModelSerializer):
         if last_enrollment:
             return EnrollmentSerializer(last_enrollment, many=False, read_only=True).data
         return None
+
+    def get_progress(self, obj):
+        request = self.context.get("request")
+
+        enrollment = models.Enrollment.objects.filter(
+            user=request.user,
+            course=obj
+        ).first()
+
+        return enrollment.user_progress if enrollment else 0
 
 
 class CourseDetailSerializer(CourseSerializer):
@@ -247,3 +258,13 @@ class SubmissionSerializer(serializers.ModelSerializer):
 class GradeSerializer(serializers.Serializer):
     """Serializer for grading submission."""
     score = serializers.IntegerField(min_value=0, max_value=100)
+
+
+class LessonProgressSerializer(serializers.ModelSerializer):
+    """Serializer for lesson progress.
+    """
+
+    class Meta:
+        model = models.LessonProgress
+        fields = ["id", "lesson", "is_completed", "completed_at"]
+        read_only_fields = ["id", "completed_at"]

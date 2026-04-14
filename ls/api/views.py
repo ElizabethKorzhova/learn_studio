@@ -18,6 +18,8 @@ from rest_framework_simplejwt.exceptions import TokenError
 
 from ls.models import Course, User, Lesson, Enrollment, Homework, HomeworkSubmission, Transaction
 from . import serializers, permissions
+from ls.models import LessonProgress
+from .utils import update_course_progress
 
 
 class AuthViewSet(viewsets.GenericViewSet):
@@ -685,3 +687,66 @@ class TransactionViewSet(viewsets.ModelViewSet):
         )
 
         return Response({"message": "Payment successful"})
+
+
+class LessonProgressViewSet(mixins.ListModelMixin,
+                            mixins.CreateModelMixin,
+                            mixins.UpdateModelMixin,
+                            viewsets.GenericViewSet):
+    """Lesson progress viewset
+    """
+    serializer_class = serializers.LessonProgressSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Return a list of all lesson progress records for the currently authenticated user.
+        """
+        return LessonProgress.objects.filter(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        """Create a new progress record or update an existing one for a specific lesson.
+
+        Logic:
+        - Validates input data.
+        - Uses 'update_or_create' to ensure a unique record per user-lesson pair.
+        - Sets 'completed_at' timestamp if the lesson is marked as completed.
+        - Triggers an overall course progress recalculation
+        """
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        lesson = serializer.validated_data['lesson']
+        is_completed = serializer.validated_data.get('is_completed', True)
+
+        progress, created = LessonProgress.objects.update_or_create(
+            user=self.request.user,
+            lesson=lesson,
+            defaults={'is_completed': is_completed}
+        )
+
+        if progress.is_completed and not progress.completed_at:
+            from django.utils.timezone import now
+            progress.completed_at = now()
+            progress.save()
+
+        update_course_progress(self.request.user, lesson.course)
+
+        output_serializer = self.get_serializer(progress)
+        status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        return Response(output_serializer.data, status=status_code)
+
+    def perform_update(self, serializer):
+        """Update an existing lesson progress record.
+
+        If the status changes to 'completed', the 'completed_at' timestamp is set,
+        and the total course progress is recalculated.
+        """
+        progress = serializer.save()
+
+        if progress.is_completed and not progress.completed_at:
+            from django.utils.timezone import now
+            progress.completed_at = now()
+            progress.save()
+
+        update_course_progress(self.request.user, progress.lesson.course)
