@@ -9,7 +9,8 @@ from django.http import HttpRequest
 from django.db.models import ForeignKey
 
 from .models import (User, Course, Lesson, Homework, HomeworkSubmission,
-                     Enrollment, SocialLink, AIFeedback, Transaction, Message)
+                     Enrollment, SocialLink, AIFeedback, Transaction, Message,
+                     HomeworkConversation, LessonProgress, Notification)
 
 
 class SocialLinkInline(admin.TabularInline):
@@ -55,7 +56,7 @@ class UserAdmin(BaseUserAdmin):
     search_fields = ("username", "email")
 
     def get_inline_instances(self, request: HttpRequest, obj: User | None = None) \
-            -> List[admin.options.InlineModelAdmin]:
+        -> List[admin.options.InlineModelAdmin]:
         """Returns inline instances based on the role of the user.
         Instructors can see their courses; others can see only their social links."""
         inline_classes = self.instructor_inlines if obj and obj.role == "instructor" \
@@ -103,6 +104,17 @@ class LessonAdmin(admin.ModelAdmin):
     search_fields = ("title", "course__title")
 
 
+@admin.register(LessonProgress)
+class LessonProgressAdmin(admin.ModelAdmin):
+    """Admin configuration for the LessonProgress model."""
+    list_display = ("user__email", "lesson__title", "is_completed", "completed_at")
+    readonly_fields = ("id", "completed_at")
+
+    list_filter = ("is_completed",)
+    search_help_text = "Search by the lesson title or the user email"
+    search_fields = ("user__email", "lesson__title",)
+
+
 @admin.register(Homework)
 class HomeworkAdmin(admin.ModelAdmin):
     """Admin configuration for the Homework model."""
@@ -110,6 +122,7 @@ class HomeworkAdmin(admin.ModelAdmin):
                     "lesson__course__title", "created_by__email")
     readonly_fields = ["id"]
 
+    list_filter = ("lesson__course__title",)
     search_help_text = "Search by the title of the homework"
     search_fields = ("title",)
 
@@ -126,10 +139,20 @@ class HomeworkSubmissionAdmin(admin.ModelAdmin):
                      "homework__created_by__email")
 
 
+@admin.register(HomeworkConversation)
+class HomeworkConversationAdmin(admin.ModelAdmin):
+    """Admin configuration for the HomeworkConversation model."""
+    list_display = ("homework__title", "student__email", "instructor__email")
+    readonly_fields = ("id", "created_at", "updated_at")
+
+    search_help_text = "Search by the homework title"
+    search_fields = ("homework__title",)
+
+
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
     """Admin configuration for the Message model."""
-    list_display = ("homework_submission__homework__title", "sender__username", "sender__email", "created_at")
+    list_display = ("conversation__homework__title", "sender__username", "sender__email", "created_at")
     readonly_fields = ("id", "created_at")
 
     search_help_text = "Search by the username or the email of the sender"
@@ -168,3 +191,14 @@ class TransactionAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     search_help_text = "Search by the title of the course or the email of the student"
     search_fields = ("course__title", "user__email")
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    """Admin configuration for the Notification model."""
+    list_display = ("title", "user__email", "type", "is_read", "created_at")
+    readonly_fields = ("id", "created_at")
+
+    list_filter = ("type", "is_read",)
+    search_help_text = "Search by the title or the email of the user"
+    search_fields = ("title", "user__email")

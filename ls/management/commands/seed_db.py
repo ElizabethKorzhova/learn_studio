@@ -13,9 +13,10 @@ from django.utils import timezone
 from faker import Faker
 
 from ls.models import (User, Course, Lesson, Homework, SocialLink,
-                       Enrollment, HomeworkSubmission, Message)
+                       Enrollment, HomeworkSubmission, Message, LessonProgress, HomeworkConversation)
 
 PASSWORD = "12345pass"
+MAX_MESSAGE_COUNT_PER_HW = 10
 
 
 class Command(BaseCommand):
@@ -137,7 +138,8 @@ class Command(BaseCommand):
         ]
         lessons = Lesson.objects.bulk_create(lessons_to_create)
 
-        homeworks_to_create = []
+        homeworks_to_create, lesson_progress_to_create = [], []
+
         for lesson in lessons:
             deadline = fake.date_time_between(start_date="+1d", end_date="+10d",
                                               tzinfo=timezone.get_current_timezone())
@@ -150,9 +152,10 @@ class Command(BaseCommand):
                 created_by=instructor,
                 deadline_date=deadline.date()
             ))
+
         homeworks = Homework.objects.bulk_create(homeworks_to_create)
 
-        submissions_to_create, enrollments_to_create, messages_to_create = [], [], []
+        submissions_to_create, enrollments_to_create, messages_to_create, conversations_to_create = [], [], [], []
 
         for enrolled_student in enrolled_students:
             submitted_count = 0
@@ -165,6 +168,30 @@ class Command(BaseCommand):
                         score=random.randint(60, 100) if is_completed else None,
                     ))
                     submitted_count += 1
+                conversation = HomeworkConversation(
+                    homework=homework,
+                    student=enrolled_student,
+                    instructor=instructor,
+                )
+                conversations_to_create.append(conversation)
+
+                for _ in range(random.randint(1, MAX_MESSAGE_COUNT_PER_HW + 1)):
+                    messages_to_create.append(Message(
+                        conversation=conversation,
+                        sender=random.choice([instructor, enrolled_student]),
+                        message_text=fake.text(),
+                    ))
+
+            for lesson in lessons:
+                is_completed = random.choice([True, False])
+                completed_at = fake.date_time_between(start_date="-10d", end_date="now",
+                                                      tzinfo=timezone.get_current_timezone()) if is_completed else None
+                lesson_progress_to_create.append(LessonProgress(
+                    user=enrolled_student,
+                    lesson=lesson,
+                    is_completed=is_completed,
+                    completed_at=completed_at
+                ))
 
             progress = int((submitted_count / lessons_count) * 100) \
                 if lessons_count > 0 else 0
@@ -179,13 +206,8 @@ class Command(BaseCommand):
                 attendance=round(random.uniform(0.0, 1.0), 2),
             ))
 
-        created_submissions = HomeworkSubmission.objects.bulk_create(submissions_to_create)
-        for submission in created_submissions:
-            messages_to_create.append(Message(
-                homework_submission=submission,
-                sender=random.choice([submission.user, instructor]),
-                message_text=fake.text(),
-            ))
-
+        LessonProgress.objects.bulk_create(lesson_progress_to_create)
+        HomeworkSubmission.objects.bulk_create(submissions_to_create)
+        HomeworkConversation.objects.bulk_create(conversations_to_create)
         Message.objects.bulk_create(messages_to_create)
         Enrollment.objects.bulk_create(enrollments_to_create)
