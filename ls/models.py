@@ -87,9 +87,43 @@ class HomeworkSubmission(models.Model):
     url = models.URLField(null=True, blank=True)
     submitted_at = models.DateTimeField(auto_now_add=True)
     score = models.IntegerField(null=True, blank=True)
+    attempt_number = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ["-submitted_at"]
 
     def __str__(self) -> str:
         return f"{self.user.email} - {self.homework.title}"
+
+
+# ------Homework Conversation
+class HomeworkConversation(models.Model):
+    """Represents a user's conversation for a homework"""
+    homework = models.ForeignKey(Homework, on_delete=models.CASCADE,
+                                 related_name="conversations")
+    student = models.ForeignKey(User, on_delete=models.CASCADE,
+                                related_name="homework_conversations")
+    instructor = models.ForeignKey(User, on_delete=models.CASCADE,
+                                   related_name="instructor_homework_conversations")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("homework", "student")
+        ordering = ["-updated_at"]
+
+
+# ------Message
+class Message(models.Model):
+    """Represents a message made by a user for homework"""
+    conversation = models.ForeignKey(HomeworkConversation, on_delete=models.CASCADE,
+                                     related_name="messages", null=True, blank=True)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sent_messages")
+    message_text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
 
 
 # ------AI FEEDBACKS
@@ -128,27 +162,6 @@ class Transaction(models.Model):
     status = models.CharField(max_length=50)
     payment_data = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
-
-
-# -------Messages
-class Message(models.Model):
-    """Represents a message made by a user for homework submission
-    """
-    homework_submission = models.ForeignKey(
-        HomeworkSubmission,
-        on_delete=models.CASCADE,
-        related_name="messages"
-    )
-    sender = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="sent_messages"
-    )
-    message_text = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.sender.email} -> submission {self.homework_submission.id}"
 
 
 # ------Progress
