@@ -1,5 +1,5 @@
 from django.test import TestCase
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from ls.ai.services import ai_advisor_response
 from ls.models import Course, User
@@ -11,10 +11,7 @@ class AIAdvisorTest(TestCase):
     """
 
     def setUp(self):
-        """Create initial test data:
-        - instructor user
-        - one default course
-        """
+        """Create initial test data."""
         self.user = User.objects.create(
             email="test@test.com",
             username="test",
@@ -29,76 +26,51 @@ class AIAdvisorTest(TestCase):
             duration=10
         )
 
-    @patch("ls.ai.services.client.chat.completions.create")
-    def test_ai_advisor_returns_response(self, mock_openai):
-        """Test that AI advisor returns a valid response string
-        and includes course recommendation.
-        """
-        mock = MagicMock()
-        mock.choices = [
-            MagicMock(message=MagicMock(content="Try Python Basics course"))
-        ]
-        mock_openai.return_value = mock
+    @patch("ls.ai.services.ai_chat")
+    def test_ai_advisor_returns_response(self, mock_ai_chat):
+        """AI returns response with course name."""
+        mock_ai_chat.return_value = "Try Python Basics course"
 
         result = ai_advisor_response("I want to learn programming")
 
         self.assertIn("Python Basics", result)
 
-    @patch("ls.ai.services.client.chat.completions.create")
-    def test_courses_in_prompt(self, mock_openai):
-        """Test that available courses are correctly included
-        in the prompt sent to OpenAI.
-        """
+    @patch("ls.ai.services.ai_chat")
+    def test_courses_in_prompt(self, mock_ai_chat):
+        """Courses должны передаваться в prompt."""
 
-        def fake_create(*args, **kwargs):
-            messages = kwargs.get("messages", [])
+        def fake_ai_chat(messages):
             prompt = messages[1]["content"]
 
             self.assertIn("Python Basics", prompt)
+            return "ok"
 
-            mock = MagicMock()
-            mock.choices = [
-                MagicMock(message=MagicMock(content="ok"))
-            ]
-            return mock
-
-        mock_openai.side_effect = fake_create
+        mock_ai_chat.side_effect = fake_ai_chat
 
         ai_advisor_response("help me choose")
 
-    @patch("ls.ai.services.client.chat.completions.create")
-    def test_no_courses(self, mock_openai):
-        """Test behavior when there are no courses in database:
-        - prompt still contains 'Courses' section
-        - no course names appear
-        - function returns AI response correctly
-        """
+    @patch("ls.ai.services.ai_chat")
+    def test_no_courses(self, mock_ai_chat):
+        """Behavior when no courses exist."""
         Course.objects.all().delete()
 
-        def fake_create(*args, **kwargs):
-            messages = kwargs.get("messages", [])
+        def fake_ai_chat(messages):
             prompt = messages[1]["content"]
 
             self.assertIn("Courses:", prompt)
             self.assertNotIn("Python Basics", prompt)
 
-            mock = MagicMock()
-            mock.choices = [
-                MagicMock(message=MagicMock(content="No courses available"))
-            ]
-            return mock
+            return "No courses available"
 
-        mock_openai.side_effect = fake_create
+        mock_ai_chat.side_effect = fake_ai_chat
 
         result = ai_advisor_response("help")
 
         self.assertEqual(result, "No courses available")
 
-    @patch("ls.ai.services.client.chat.completions.create")
-    def test_multiple_courses_in_prompt(self, mock_openai):
-        """Test that multiple courses are correctly included
-        in the generated prompt.
-        """
+    @patch("ls.ai.services.ai_chat")
+    def test_multiple_courses_in_prompt(self, mock_ai_chat):
+        """Multiple courses appear in prompt."""
         Course.objects.create(
             instructor=self.user,
             title="Django Advanced",
@@ -107,32 +79,22 @@ class AIAdvisorTest(TestCase):
             duration=20
         )
 
-        def fake_create(*args, **kwargs):
-            messages = kwargs.get("messages", [])
+        def fake_ai_chat(messages):
             prompt = messages[1]["content"]
 
             self.assertIn("Python Basics", prompt)
             self.assertIn("Django Advanced", prompt)
 
-            mock = MagicMock()
-            mock.choices = [
-                MagicMock(message=MagicMock(content="ok"))
-            ]
-            return mock
+            return "ok"
 
-        mock_openai.side_effect = fake_create
+        mock_ai_chat.side_effect = fake_ai_chat
 
         ai_advisor_response("recommend")
 
-    @patch("ls.ai.services.client.chat.completions.create")
-    def test_ai_response_not_empty(self, mock_openai):
-        """Test that AI advisor always returns a non-empty response.
-        """
-        mock = MagicMock()
-        mock.choices = [
-            MagicMock(message=MagicMock(content="Try Python Basics course"))
-        ]
-        mock_openai.return_value = mock
+    @patch("ls.ai.services.ai_chat")
+    def test_ai_response_not_empty(self, mock_ai_chat):
+        """AI response should not be empty."""
+        mock_ai_chat.return_value = "Some response"
 
         result = ai_advisor_response("I want to learn")
 
