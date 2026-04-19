@@ -1,7 +1,7 @@
 """This module provides DRF ViewSets for API LMS."""
 from typing import Union, Type, List
 
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Max
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, mixins, status
@@ -16,13 +16,13 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
-from ls.models import Course, User, Lesson, Enrollment, Homework, HomeworkSubmission, Transaction
+from ls.models import (Course, User, Lesson, Enrollment, Homework, HomeworkSubmission,
+                       Transaction, HomeworkConversation, Message)
 from . import serializers, permissions
 from ls.models import LessonProgress
 from .utils import update_course_progress
 from ls.services.payment_service import confirm_payment
 from ls.services.homework_service import grade_submission
-from ls.services.notification_service import create_notification
 
 
 class AuthViewSet(viewsets.GenericViewSet):
@@ -220,8 +220,9 @@ class CourseViewSet(viewsets.ModelViewSet):
             Response: API response with list of courses for student or instructor
         """
         user = request.user
-        queryset = Course.objects.filter(enrollments__user=user) if user.role == "student" else Course.objects.filter(
-            instructor=user) if user.role == "instructor" else Course.objects.none()
+        queryset = Course.objects.filter(enrollments__user=user) if user.role == "student" \
+            else Course.objects.filter(instructor=user) if user.role == "instructor" \
+            else Course.objects.none()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -339,10 +340,39 @@ class LessonViewSet(viewsets.ModelViewSet):
                 name="lesson_id",
                 location=OpenApiParameter.QUERY,
                 required=True,
-                type=int,
+                type=int
             )
         ]
-    )
+    ),
+    conversation=extend_schema(
+        description=(
+            "Returns homework conversation for the current student or for the selected student. "
+            "If it does not exist yet, conversation is created automatically by backend."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="student_id",
+                location=OpenApiParameter.QUERY,
+                required=False,
+                type=int,
+                description="Required for instructor only. Do not send for student."
+            )
+        ],
+    ),
+    students=extend_schema(
+        filters=False
+    ),
+    send_message=extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="student_id",
+                location=OpenApiParameter.QUERY,
+                required=False,
+                type=int,
+                description="Required for instructor. Do not send for student."
+            )
+        ],
+    ),
 )
 class HomeworkViewSet(viewsets.ModelViewSet):
     """ViewSet for Homework management endpoint."""
@@ -352,15 +382,33 @@ class HomeworkViewSet(viewsets.ModelViewSet):
     filterset_fields = ["lesson_id"]
     http_method_names = ["get", "post", "patch", "delete"]
 
-    def get_permissions(self) -> List[Type[BasePermission]]:
+    def get_serializer_class(self) -> Type[Serializer]:
+        """
+        Returns the serializer class based on the action.
+
+        Returns:
+            Type[Serializer]: the serializer class
+        """
+        if self.action == "conversation":
+            return serializers.HomeworkConversationDetailSerializer
+        if self.action == "students":
+            return serializers.HomeworkStudentListSerializer
+        if self.action == "send_message":
+            return serializers.MessageCreateSerializer
+        return serializers.HomeworkSerializer
+
+    def get_permissions(self) -> List[BasePermission]:
         """
         Returns the list of permissions based on the action.
 
         Returns:
             List[Type[BasePermission]]: the list of permissions
         """
-        if self.action in ("create", "partial_update", "destroy"):
+        if self.action in ("create", "partial_update", "destroy", "students"):
             return [(permissions.IsInstructor & permissions.IsCourseInstructor)()]
+        if self.action in ("conversation", "send_message"):
+            return [((permissions.IsStudent & permissions.IsEnrolledStudent) | (
+                permissions.IsInstructor & permissions.IsCourseInstructor))()]
         return [permissions.IsEnrolledOrStuff()]
 
     def get_queryset(self) -> QuerySet[Homework]:
@@ -372,7 +420,8 @@ class HomeworkViewSet(viewsets.ModelViewSet):
         Raises:
             PermissionDenied: if the user does not have enrolled or another instructor
         """
-        if self.action in ("retrieve", "partial_update", "destroy"):
+        if self.action in ("retrieve", "partial_update", "destroy",
+                           "conversation", "send_message", "students"):
             return Homework.objects.all()
 
         user = self.request.user
@@ -419,6 +468,147 @@ class HomeworkViewSet(viewsets.ModelViewSet):
         if user.role == "instructor" and lesson.course.instructor != user:
             raise PermissionDenied("You are not the instructor for this course")
         serializer.save(lesson=lesson, created_by=user)
+
+    def _get_student_for_homework(self, homework: Homework) -> User:
+        """
+        Returns the student for the conversation.
+
+        Args:
+            homework (Homework): homework object
+        Returns:
+            User: the student (user object)
+        Raises:
+            ValidationError:
+                - if the student have not enrolled in the course or provided student_id
+                - if the instructor have not provided student_id
+        """
+        user = self.request.user
+        student_id = self.request.query_params.get("student_id")
+
+        if user.role == "student":
+            if student_id is not None:
+                raise ValidationError("student_id must not be provided by student")
+            return user
+
+        if not student_id:
+            raise ValidationError("student_id is required")
+
+        student = get_object_or_404(User, id=student_id, role="student")
+
+        if not homework.lesson.course.enrollments.filter(user=student).exists():
+            raise ValidationError("This student is not enrolled in the course")
+
+        return student
+
+    @staticmethod
+    def _get_or_create_conversation(homework: Homework, student: User) -> HomeworkConversation:
+        """
+        Retrieve or create a new conversation.
+
+        Args:
+            homework (Homework): homework object
+            student (User): student (user object)
+        Returns:
+            HomeworkConversation: conversation object
+        """
+        conversation, _ = HomeworkConversation.objects.get_or_create(
+            homework=homework,
+            student=student,
+            defaults={
+                "instructor": homework.lesson.course.instructor
+            }
+        )
+        return conversation
+
+    @action(methods=["get"], detail=True)
+    def conversation(self, request: Request, pk: int | None = None) -> Response:
+        """
+        Action to get the conversation
+
+        Args:
+            request (Request): request object
+            pk (int | None): id
+        Returns:
+            Response: conversation object
+        """
+        homework = self.get_object()
+        student = self._get_student_for_homework(homework)
+        conversation = self._get_or_create_conversation(homework, student)
+
+        messages = Message.objects.filter(
+            conversation=conversation
+        ).select_related("sender", "conversation").order_by("created_at")
+
+        serializer = serializers.HomeworkConversationDetailSerializer(
+            instance={
+                "homework": homework,
+                "conversation": conversation,
+                "messages": messages,
+            },
+            context={"request": request}
+        )
+        return Response(serializer.data)
+
+    @action(methods=["post"], detail=True)
+    def send_message(self, request: Request, pk: int | None = None) -> Response:
+        """
+        Action to send a message
+
+        Args:
+            request (Request): request object
+            pk (int | None): id
+        Returns:
+            Response: message object
+        """
+        homework = self.get_object()
+        student = self._get_student_for_homework(homework)
+        conversation = self._get_or_create_conversation(homework, student)
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        message = serializer.save(
+            conversation=conversation,
+            sender=request.user
+        )
+
+        response_serializer = serializers.MessageSerializer(
+            message,
+            context={"request": request}
+        )
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(methods=["get"], detail=True, url_path="students")
+    def students(self, request: Request, pk: int | None = None) -> Response:
+        """
+        Action to get the students list
+
+        Args:
+            request (Request): request object
+            pk (int | None): id
+        Returns:
+            Response: students list
+        """
+        homework = self.get_object()
+        user = request.user
+
+        if user.role == "instructor" and homework.lesson.course.instructor != user:
+            raise PermissionDenied("You are not the instructor for this course")
+
+        enrollments = Enrollment.objects.filter(
+            course=homework.lesson.course,
+            user__role="student"
+        ).select_related("user")
+
+        serializer = serializers.HomeworkStudentListSerializer(
+            instance=[
+                {"student": enrollment.user}
+                for enrollment in enrollments
+            ],
+            many=True,
+            context={"request": request}
+        )
+        return Response(serializer.data)
 
 
 class EnrollmentViewSet(viewsets.ModelViewSet):
@@ -507,7 +697,9 @@ class HomeworkSubmissionViewSet(mixins.CreateModelMixin,
                                 viewsets.GenericViewSet
                                 ):
     """ViewSet for HomeworkSubmission management endpoint."""
-    queryset = HomeworkSubmission.objects.all()
+    queryset = HomeworkSubmission.objects.select_related(
+        "user", "homework", "homework__lesson", "homework__lesson__course"
+    )
 
     def get_serializer_class(self) -> Type[Serializer]:
         """
@@ -581,11 +773,34 @@ class HomeworkSubmissionViewSet(mixins.CreateModelMixin,
         if not homework.lesson.course.enrollments.filter(user=user).exists():
             raise PermissionDenied("You are not enrolled for this course")
 
-        serializer.save(user=user, homework=homework)
+        last_attempt = HomeworkSubmission.objects.filter(
+            user=user,
+            homework=homework
+        ).aggregate(last_attempt=Max("attempt_number"))["last_attempt"] or 0
+
+        serializer.save(
+            user=user,
+            homework=homework,
+            attempt_number=last_attempt + 1
+        )
 
     @action(detail=True, methods=["patch"])
-    def grade(self, request, pk=None):
+    def grade(self, request: Request, pk: int | None = None) -> Response:
+        """
+        Grades the homework submission.
+
+        Args:
+            request (Request): the request object
+            pk (int | None): id
+        Returns:
+            Response: API response with success message after grading
+        Raises:
+            PermissionDenied: if the user is not a instructor of the course
+        """
         submission = self.get_object()
+
+        if request.user != submission.homework.lesson.course.instructor:
+            raise PermissionDenied("You are not the instructor of this course")
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -596,41 +811,6 @@ class HomeworkSubmissionViewSet(mixins.CreateModelMixin,
         )
 
         return Response({"message": "Successfully graded"})
-
-    @action(detail=True, methods=["get", "post"])
-    def messages(self, request: Request, pk: int | None = None) -> Response | None:
-        """
-        Action to manage messages.
-
-        Args:
-            request (Request): the request object
-            pk (int | None): id
-        Returns:
-            Response: API response with list of messages or created message
-        """
-
-        submission = self.get_object()
-
-        if request.method == "GET":
-            messages = submission.messages.all().order_by("created_at")
-            serializer = serializers.MessageSerializer(messages, many=True)
-            return Response(serializer.data)
-
-        serializer = serializers.MessageSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        message = serializer.save(
-            sender=request.user,
-            homework_submission=submission
-        )
-
-        create_notification(
-            user=submission.user,
-            message="New message on your homework",
-            type_="message"
-        )
-
-        return Response(serializers.MessageSerializer(message).data)
 
 
 class TransactionViewSet(viewsets.ModelViewSet):

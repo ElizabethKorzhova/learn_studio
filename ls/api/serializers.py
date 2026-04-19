@@ -208,9 +208,9 @@ class TransactionSerializer(serializers.ModelSerializer):
         course = attrs.get("course")
 
         if models.Transaction.objects.filter(
-                user=user,
-                course=course,
-                status="success"
+            user=user,
+            course=course,
+            status="success"
         ).exists():
             raise serializers.ValidationError(
                 "You already purchased this course"
@@ -225,39 +225,70 @@ class TransactionConfirmSerializer(serializers.Serializer):
     payment_data = serializers.JSONField()
 
 
-class MessageSerializer(serializers.ModelSerializer):
-    """Serializer for message."""
-    sender = UserShortSerializer(read_only=True)
-
-    class Meta:
-        model = models.Message
-        fields = "__all__"
-        read_only_fields = ["homework_submission", "sender", "created_at"]
-
-
 class SubmissionCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating submission."""
+    """Serializer for submission create"""
     user = UserShortSerializer(read_only=True)
 
     class Meta:
         model = models.HomeworkSubmission
-        fields = ["id", "homework", "user", "files", "url"]
-        read_only_fields = ["id", "homework"]
+        fields = ["id", "homework", "user", "files", "url", "attempt_number"]
+        read_only_fields = ["id", "homework", "user", "attempt_number"]
 
 
 class SubmissionSerializer(serializers.ModelSerializer):
-    """Serializer for submission."""
+    """Serializer for submission"""
     user = UserShortSerializer(read_only=True)
 
     class Meta:
         model = models.HomeworkSubmission
-        fields = "__all__"
-        read_only_fields = ["user", "score", "submitted_at"]
+        fields = ["id", "homework", "user", "files", "url", "submitted_at", "score", "attempt_number"]
+        read_only_fields = ["id", "user", "submitted_at", "score", "attempt_number"]
 
 
 class GradeSerializer(serializers.Serializer):
     """Serializer for grading submission."""
     score = serializers.IntegerField(min_value=0, max_value=100)
+
+
+class HomeworkConversationSerializer(serializers.ModelSerializer):
+    """Serializer for homework conversation"""
+    student = UserShortSerializer(read_only=True)
+    instructor = UserShortSerializer(read_only=True)
+
+    class Meta:
+        model = models.HomeworkConversation
+        fields = ["id", "homework", "student", "instructor", "created_at", "updated_at"]
+        read_only_fields = fields
+
+
+class MessageCreateSerializer(serializers.ModelSerializer):
+    """Serializer for message creation"""
+
+    class Meta:
+        model = models.Message
+        fields = ["message_text"]
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    """Serializer for message"""
+    sender = UserShortSerializer(read_only=True)
+
+    class Meta:
+        model = models.Message
+        fields = ["id", "conversation", "sender", "message_text", "created_at"]
+        read_only_fields = ["id", "conversation", "sender", "created_at"]
+
+
+class HomeworkConversationDetailSerializer(serializers.Serializer):
+    """Serializer for homework conversation detail"""
+    homework = HomeworkSerializer()
+    conversation = HomeworkConversationSerializer()
+    messages = MessageSerializer(many=True)
+
+
+class HomeworkStudentListSerializer(serializers.Serializer):
+    """Serializer for homework student list"""
+    student = UserShortSerializer()
 
 
 class LessonProgressSerializer(serializers.ModelSerializer):
