@@ -176,6 +176,13 @@ class HomeworkSubmissionTest(TestCase):
             role="student"
         )
 
+        self.instructor = User.objects.create_user(
+            username="inst",
+            email="inst@test.com",
+            password="pass",
+            role="instructor"
+        )
+
         self.course = Course.objects.create(
             instructor=self.user,
             title="Course",
@@ -209,8 +216,14 @@ class HomeworkSubmissionTest(TestCase):
             homework=self.homework
         )
 
+        conversation = HomeworkConversation.objects.create(
+            homework=submission.homework,
+            student=self.user,
+            instructor=self.instructor
+        )
+
         Message.objects.create(
-            homework_submission=submission,
+            conversation=conversation,
             sender=self.user,
             message_text="test"
         )
@@ -307,6 +320,12 @@ class AIFeedbackModelTest(TestCase):
             password="pass",
             role="student"
         )
+        self.instructor = User.objects.create_user(
+            username="inst",
+            email="inst@test.com",
+            password="pass",
+            role="instructor"
+        )
 
         self.course: Course = Course.objects.create(
             instructor=self.user,
@@ -338,8 +357,14 @@ class AIFeedbackModelTest(TestCase):
             homework=self.homework
         )
 
+        self.conversation = HomeworkConversation.objects.create(
+            homework=self.homework,
+            student=self.user,
+            instructor=self.instructor
+        )
+
         Message.objects.create(
-            homework_submission=self.submission,
+            conversation=self.conversation,
             sender=self.user,
             message_text="test"
         )
