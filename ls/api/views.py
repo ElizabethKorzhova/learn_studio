@@ -1,6 +1,7 @@
 """This module provides DRF ViewSets for API LMS."""
 from typing import Union, Type, List
 
+from asgiref.sync import async_to_sync
 from django.db.models import QuerySet, Max
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
@@ -15,6 +16,7 @@ from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiPara
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from channels.layers import get_channel_layer
 
 from ls.models import (Course, User, Lesson, Enrollment, Homework, HomeworkSubmission,
                        Transaction, HomeworkConversation, Message)
@@ -23,6 +25,7 @@ from ls.models import LessonProgress
 from .utils import update_course_progress
 from ls.services.payment_service import confirm_payment
 from ls.services.homework_service import grade_submission
+from ls.chat.utils import create_chat_name
 
 
 class AuthViewSet(viewsets.GenericViewSet):
@@ -576,6 +579,19 @@ class HomeworkViewSet(viewsets.ModelViewSet):
             message,
             context={"request": request}
         )
+
+        channel_layer = get_channel_layer()
+        if channel_layer is not None:
+            async_to_sync(channel_layer.group_send)(
+                create_chat_name(
+                    homework_id=homework.id,
+                    student_id=student.id,
+                ),
+                {
+                    "type": "chat_message",
+                    "message": response_serializer.data,
+                }
+            )
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     @action(methods=["get"], detail=True, url_path="students")
