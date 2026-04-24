@@ -5,11 +5,14 @@ import {
   getAccessTokenCookieOptions,
   getRefreshTokenCookieOptions,
 } from "@/shared/lib/auth/cookies";
-import type { LoginDto, TokenPair } from "@/features/auth/types/auth.types";
+import type {
+  LoginDataType,
+  TokenPair,
+} from "@/features/auth/types/auth.types";
 
 export const POST = async (request: Request) => {
   try {
-    const body = (await request.json()) as LoginDto;
+    const body = (await request.json()) as LoginDataType;
 
     const backendResponse = await fetch(`${env.apiBaseUrl}/api/auth/login/`, {
       method: "POST",

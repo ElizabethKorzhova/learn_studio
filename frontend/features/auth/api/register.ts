@@ -1,25 +1,16 @@
 import type {
-  AuthErrorResponse,
   AuthRouteSuccess,
-  RegisterDto,
-} from "../types/auth.types";
+  RegisterDataType,
+} from "@/features/auth/types/auth.types";
+import baseApi from "@/shared/lib/api/baseApi";
+import { routes } from "@/shared/config/routes";
 
 export const register = async (
-  payload: RegisterDto,
+  payload: RegisterDataType,
 ): Promise<AuthRouteSuccess> => {
-  const response = await fetch("/api/auth/register", {
+  return (await baseApi<AuthRouteSuccess>(routes.api.register, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const data = (await response.json()) as AuthRouteSuccess & AuthErrorResponse;
-
-  if (!response.ok) {
-    throw new Error(data.message ?? "Registration failed");
-  }
-
-  return data;
+    body: payload,
+    baseUrl: "",
+  })) as AuthRouteSuccess;
 };

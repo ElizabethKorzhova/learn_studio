@@ -5,11 +5,14 @@ import {
   getAccessTokenCookieOptions,
   getRefreshTokenCookieOptions,
 } from "@/shared/lib/auth/cookies";
-import type { RegisterDto, TokenPair } from "@/features/auth/types/auth.types";
+import type {
+  RegisterDataType,
+  TokenPair,
+} from "@/features/auth/types/auth.types";
 
 export const POST = async (request: Request) => {
   try {
-    const body = (await request.json()) as RegisterDto;
+    const body = (await request.json()) as RegisterDataType;
 
     const backendResponse = await fetch(
       `${env.apiBaseUrl}/api/auth/register/`,

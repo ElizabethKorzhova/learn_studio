@@ -1,13 +1,10 @@
+import baseApi from "@/shared/lib/api/baseApi";
+import { routes } from "@/shared/config/routes";
+
 export const logout = async (): Promise<{ ok: true }> => {
-  const response = await fetch("/api/auth/logout", {
+  await baseApi<void>(routes.api.logout, {
     method: "POST",
+    baseUrl: "",
   });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data?.message ?? "Logout failed");
-  }
-
-  return data;
+  return { ok: true };
 };

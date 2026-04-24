@@ -2,12 +2,12 @@ import React from "react";
 
 export type UserRole = "student" | "instructor" | string;
 
-export interface LoginDto {
+export interface LoginDataType {
   email: string;
   password: string;
 }
 
-export interface RegisterDto {
+export interface RegisterDataType {
   email: string;
   username: string;
   password: string;
@@ -23,14 +23,6 @@ export interface TokenPair {
 
 export interface AuthRouteSuccess {
   ok: true;
-}
-
-export interface AuthErrorResponse {
-  detail?: string;
-  message?: string;
-  errors?: unknown;
-
-  [key: string]: unknown;
 }
 
 export interface SocialLink {

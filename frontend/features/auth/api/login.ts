@@ -1,23 +1,14 @@
-import type {
-  AuthErrorResponse,
+import {
+  LoginDataType,
   AuthRouteSuccess,
-  LoginDto,
-} from "../types/auth.types";
+} from "@/features/auth/types/auth.types";
+import baseApi from "@/shared/lib/api/baseApi";
+import { routes } from "@/shared/config/routes";
 
-export const login = async (payload: LoginDto): Promise<AuthRouteSuccess> => {
-  const response = await fetch("/api/auth/login", {
+export const login = (payload: LoginDataType): Promise<AuthRouteSuccess> => {
+  return baseApi<AuthRouteSuccess>(routes.api.login, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const data = (await response.json()) as AuthRouteSuccess & AuthErrorResponse;
-
-  if (!response.ok) {
-    throw new Error(data.message ?? "Login failed");
-  }
-
-  return data;
+    body: payload,
+    baseUrl: "",
+  }) as Promise<AuthRouteSuccess>;
 };
