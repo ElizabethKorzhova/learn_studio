@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import { Formik, Form } from "formik";
 import { login } from "../api/login";
 import { loginSchema } from "../schemas/loginSchema";
-import SubmitButton from "@/shared/components/forms/SubmitButton";
 import TextField from "@/shared/components/forms/TextField";
 import AuthQuestion from "@/features/auth/components/AuthQuestion";
 import { routes } from "@/shared/config/routes";
+import ActionButton from "@/shared/components/ActionButton";
 
 const LoginForm = () => {
   const router = useRouter();
@@ -34,7 +34,7 @@ const LoginForm = () => {
         }
       }}
     >
-      {({ isSubmitting, status }) => (
+      {({ status }) => (
         <Form className="flex flex-col gap-4 lg:gap-6">
           <TextField
             name="email"
@@ -58,7 +58,12 @@ const LoginForm = () => {
             route={routes.register}
             linkTitle="Register"
           />
-          <SubmitButton isSubmitting={isSubmitting}>Login</SubmitButton>
+          <ActionButton
+            label="Login"
+            variant="dark"
+            type="submit"
+            className="w-full"
+          />
         </Form>
       )}
     </Formik>

@@ -14,7 +14,7 @@ const TextField = ({
       id={name}
       type={type}
       placeholder={placeholder}
-      className="focus:ring-primary-accent bg-primary-light rounded-xl border px-4 py-3 transition-all outline-none focus:border-transparent focus:ring-2"
+      className="border-primary-light text-primary-dark placeholder:text-primary-grey/40 focus:border-primary-accent w-full rounded-2xl border bg-white px-4 py-3 text-sm transition outline-none"
     />
   </BaseFieldWrapper>
 );

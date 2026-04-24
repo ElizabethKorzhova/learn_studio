@@ -1,7 +1,7 @@
 import { routes } from "@/shared/config/routes";
-import LinkButton from "@/shared/components/LinkButton";
 import Logo from "@/shared/components/Logo";
-import type { PublicHeaderProps } from "@/shared/types/header.types";
+import type { PublicHeaderProps } from "@/shared/types/ui.types";
+import ActionButton from "@/shared/components/ActionButton";
 
 const PublicHeader = ({ showNavigation = true }: PublicHeaderProps) => {
   return (
@@ -13,10 +13,14 @@ const PublicHeader = ({ showNavigation = true }: PublicHeaderProps) => {
         <nav>
           <ul className="flex items-center gap-4 lg:gap-8">
             <li>
-              <LinkButton route={routes.login} text="Login" />
+              <ActionButton href={routes.login} label="Login" variant="dark" />
             </li>
             <li>
-              <LinkButton route={routes.register} text="Register" />
+              <ActionButton
+                href={routes.register}
+                label="Register"
+                variant="dark"
+              />
             </li>
           </ul>
         </nav>

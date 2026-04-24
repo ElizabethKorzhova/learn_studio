@@ -16,9 +16,3 @@ export interface TextFieldProps {
 export interface SelectFieldProps extends TextFieldProps {
   children: React.ReactNode;
 }
-
-export interface SubmitButtonProps {
-  children: React.ReactNode;
-  loadingText?: string;
-  isSubmitting: boolean;
-}
