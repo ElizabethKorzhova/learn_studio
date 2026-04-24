@@ -16,3 +16,10 @@ export interface TextFieldProps {
 export interface SelectFieldProps extends TextFieldProps {
   children: React.ReactNode;
 }
+
+export type TextareaFieldProps = {
+  name: string;
+  label?: string;
+  placeholder?: string;
+  rows?: number;
+};
