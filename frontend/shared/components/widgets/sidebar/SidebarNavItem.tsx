@@ -17,6 +17,9 @@ const SidebarNavItem = ({
   return (
     <Link
       href={href}
+      onClick={() => {
+        window.dispatchEvent(new Event("close-sidebar"));
+      }}
       className={[
         "block rounded-xl px-4 py-3 text-sm font-medium transition-colors",
         isActive

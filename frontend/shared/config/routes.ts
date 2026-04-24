@@ -14,5 +14,6 @@ export const routes = {
     logout: "/api/auth/logout/",
     register: "/api/auth/register/",
     tokenRefresh: "/api/auth/token/refresh/",
+    profile: "/api/users/me/",
   },
 } as const;

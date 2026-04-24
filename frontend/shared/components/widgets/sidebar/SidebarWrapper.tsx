@@ -3,9 +3,11 @@
 import React from "react";
 import { useEffect, useState } from "react";
 import BurgerButton from "@/shared/components/widgets/header/BurgerButton";
+import { usePathname } from "next/navigation";
 
 const SidebarWrapper = ({ children }: { children: React.ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "unset";
@@ -15,9 +17,21 @@ const SidebarWrapper = ({ children }: { children: React.ReactNode }) => {
     };
   }, [isOpen]);
 
-  const closeSidebar = () => {
+  useEffect(() => {
     setIsOpen(false);
-  };
+  }, [pathname]);
+
+  useEffect(() => {
+    const handleCloseSidebar = () => {
+      setIsOpen(false);
+    };
+
+    window.addEventListener("close-sidebar", handleCloseSidebar);
+
+    return () => {
+      window.removeEventListener("close-sidebar", handleCloseSidebar);
+    };
+  }, []);
 
   return (
     <>
@@ -28,7 +42,7 @@ const SidebarWrapper = ({ children }: { children: React.ReactNode }) => {
       {isOpen && (
         <div
           className="bg-primary-dark/40 fixed inset-0 z-70 backdrop-blur-sm lg:hidden"
-          onClick={closeSidebar}
+          onClick={() => setIsOpen(false)}
         />
       )}
 
@@ -46,7 +60,7 @@ const SidebarWrapper = ({ children }: { children: React.ReactNode }) => {
           <button
             type="button"
             aria-label="Close sidebar"
-            onClick={closeSidebar}
+            onClick={() => setIsOpen(false)}
             className="text-primary-grey -mr-2 p-2"
           >
             <svg
