@@ -36,6 +36,7 @@ export interface CurrentUser {
   email: string;
   first_name: string;
   last_name: string;
+  role: UserRole;
   social_links: SocialLink[];
 }
 
