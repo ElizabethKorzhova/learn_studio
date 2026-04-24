@@ -7,13 +7,15 @@ import { AUTH_COOKIE_NAMES } from "@/shared/lib/auth/cookies";
 export const POST = async () => {
   try {
     const cookieStore = await cookies();
+    const accessToken = cookieStore.get(AUTH_COOKIE_NAMES.accessToken)?.value;
     const refreshToken = cookieStore.get(AUTH_COOKIE_NAMES.refreshToken)?.value;
 
-    if (refreshToken) {
+    if (accessToken && refreshToken) {
       await fetch(`${env.apiBaseUrl}/api/auth/logout/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ refresh: refreshToken }),
         cache: "no-store",
