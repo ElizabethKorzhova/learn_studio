@@ -15,7 +15,7 @@ const BaseFieldWrapper = ({ name, label, children }: BaseFieldWrapperProps) => (
     <ErrorMessage
       name={name}
       component="div"
-      className="mt-1 px-1 text-xs font-medium text-primary-red"
+      className="text-primary-red mt-1 px-1 text-xs font-medium"
     />
   </div>
 );
