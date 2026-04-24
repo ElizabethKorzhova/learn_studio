@@ -3,6 +3,7 @@ import PublicHeader from "@/shared/components/PublicHeader";
 import { getSession } from "@/shared/lib/auth/getSession";
 import { redirect } from "next/navigation";
 import { routes } from "@/shared/config/routes";
+import Title from "@/shared/components/Title";
 
 const AuthPageWrapper = async ({ title, children }: AuthFormWrapperProps) => {
   const session = await getSession();
@@ -15,8 +16,8 @@ const AuthPageWrapper = async ({ title, children }: AuthFormWrapperProps) => {
     <>
       <PublicHeader showNavigation={false} />
       <section className="bg-secondary-light flex min-h-screen items-center justify-center p-6 px-6 pb-6 md:px-18 md:pb-10 lg:pb-16 lg:pb-32">
-        <div className="shadow-primary-soft bg-primary-light w-full max-w-md rounded-2xl border p-6">
-          <h3 className="mb-6 text-2xl font-bold">{title}</h3>
+        <div className="shadow-primary-soft border-primary-light w-full max-w-md rounded-2xl border bg-white p-6">
+          <Title title={title} />
           {children}
         </div>
       </section>

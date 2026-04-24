@@ -4,11 +4,11 @@ import { useRouter } from "next/navigation";
 import { Formik, Form } from "formik";
 import { register } from "../api/register";
 import { registerSchema } from "../schemas/registerSchema";
-import SubmitButton from "@/shared/components/forms/SubmitButton";
 import TextField from "@/shared/components/forms/TextField";
-import { SelectField } from "@/shared/components/forms/SelectField";
+import SelectField from "@/shared/components/forms/SelectField";
 import AuthQuestion from "@/features/auth/components/AuthQuestion";
 import { routes } from "@/shared/config/routes";
+import ActionButton from "@/shared/components/ActionButton";
 
 const RegisterForm = () => {
   const router = useRouter();
@@ -39,7 +39,7 @@ const RegisterForm = () => {
         }
       }}
     >
-      {({ isSubmitting, status }) => (
+      {({ status }) => (
         <Form className="flex w-full max-w-md flex-col gap-4 lg:gap-6">
           <div className="flex w-full gap-4">
             <div className="min-w-0 flex-1">
@@ -92,8 +92,12 @@ const RegisterForm = () => {
               {status}
             </div>
           )}
-
-          <SubmitButton isSubmitting={isSubmitting}>Register</SubmitButton>
+          <ActionButton
+            label="Register"
+            variant="dark"
+            type="submit"
+            className="w-full"
+          />
         </Form>
       )}
     </Formik>
