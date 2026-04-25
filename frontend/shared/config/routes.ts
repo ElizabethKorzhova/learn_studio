@@ -9,12 +9,13 @@ export const routes = {
   newCourse: "/courses/new",
   course: (id: string) => `/courses/${id}`,
   editCourse: (id: string) => `/courses/${id}/edit`,
-
-  newLesson: (courseId: string) => `/courses/${courseId}/lessons/new`,
-  lesson: (courseId: string, lessonId: string) =>
-    `/courses/${courseId}/lessons/${lessonId}`,
-  editLesson: (courseId: string, lessonId: string) =>
-    `/courses/${courseId}/lessons/${lessonId}/edit`,
+  newLesson: (id: string) => `/courses/${id}/lessons/new`,
+  lesson: (id: string) => `/lessons/${id}`,
+  editLesson: (id: string) => `/lessons/${id}/edit`,
+  newHomework: (lessonId: string | number) =>
+    `/lessons/${lessonId}/homeworks/new`,
+  homework: (id: string | number) => `/homeworks/${id}`,
+  editHomework: (id: string | number) => `/homeworks/${id}/edit`,
   api: {
     login: "/api/auth/login/",
     logout: "/api/auth/logout/",
@@ -25,5 +26,7 @@ export const routes = {
     myCourses: "/api/courses/my/",
     course: (id: string) => `/api/courses/${id}/`,
     enrollments: "/api/enrollments/",
+    lessons: (courseId: string) => `/api/lessons/?course_id=${courseId}`,
+    lesson: (id: string) => `/api/lessons/${id}/`,
   },
 } as const;
