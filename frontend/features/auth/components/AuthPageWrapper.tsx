@@ -9,7 +9,7 @@ const AuthPageWrapper = async ({ title, children }: AuthFormWrapperProps) => {
   const session = await getSession();
 
   if (session) {
-    redirect(routes.dashboard);
+    redirect(routes.courses);
   }
 
   return (

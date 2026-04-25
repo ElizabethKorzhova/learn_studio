@@ -81,7 +81,7 @@ const LessonPage = async ({ params, searchParams }: LessonPageProps) => {
           {permissions.canCreateHomework && (
             <ActionButton
               label="Add homework"
-              href={routes.newHomework(lesson.id)}
+              href={`${routes.newHomework(lesson.id)}?course_id=${courseId}`}
             />
           )}
         </div>
