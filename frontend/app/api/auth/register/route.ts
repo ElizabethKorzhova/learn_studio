@@ -9,18 +9,7 @@ import type {
   RegisterDataType,
   TokenPair,
 } from "@/features/auth/types/auth.types";
-
-export const parseBackendResponse = async (response: Response) => {
-  const text = await response.text();
-
-  if (!text) return null;
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { detail: text };
-  }
-};
+import { parseBackendResponse } from "@/shared/lib/api/parseBackendResponse";
 
 export const POST = async (request: Request) => {
   try {

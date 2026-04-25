@@ -9,7 +9,7 @@ import type {
   LoginDataType,
   TokenPair,
 } from "@/features/auth/types/auth.types";
-import { parseBackendResponse } from "@/app/api/auth/register/route";
+import { parseBackendResponse } from "@/shared/lib/api/parseBackendResponse";
 
 export const POST = async (request: Request) => {
   try {
