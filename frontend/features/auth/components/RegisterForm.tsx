@@ -39,7 +39,7 @@ const RegisterForm = () => {
         }
       }}
     >
-      {({ status }) => (
+      {({ isSubmitting, status }) => (
         <Form className="flex w-full max-w-md flex-col gap-4 lg:gap-6">
           <div className="flex w-full gap-4">
             <div className="min-w-0 flex-1">
@@ -97,6 +97,7 @@ const RegisterForm = () => {
             variant="dark"
             type="submit"
             className="w-full"
+            disabled={isSubmitting}
           />
         </Form>
       )}
