@@ -23,7 +23,7 @@ const LoginForm = () => {
         try {
           setStatus(null);
           await login(values);
-          router.push(routes.dashboard);
+          router.push(routes.courses);
           router.refresh();
         } catch (error) {
           const message =

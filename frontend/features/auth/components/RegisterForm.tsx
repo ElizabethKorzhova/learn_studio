@@ -28,7 +28,7 @@ const RegisterForm = () => {
         try {
           setStatus(null);
           await register(values);
-          router.push(routes.dashboard);
+          router.push(routes.courses);
           router.refresh();
         } catch (error) {
           const message =
