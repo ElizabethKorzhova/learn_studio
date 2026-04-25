@@ -10,6 +10,18 @@ import type {
   TokenPair,
 } from "@/features/auth/types/auth.types";
 
+const parseBackendResponse = async (response: Response) => {
+  const text = await response.text();
+
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { detail: text };
+  }
+};
+
 export const POST = async (request: Request) => {
   try {
     const body = (await request.json()) as RegisterDataType;
@@ -26,7 +38,7 @@ export const POST = async (request: Request) => {
       },
     );
 
-    const data = await backendResponse.json();
+    const data = await parseBackendResponse(backendResponse);
 
     if (!backendResponse.ok) {
       return NextResponse.json(
