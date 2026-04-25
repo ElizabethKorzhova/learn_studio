@@ -34,7 +34,7 @@ const LoginForm = () => {
         }
       }}
     >
-      {({ status }) => (
+      {({ isSubmitting, status }) => (
         <Form className="flex flex-col gap-4 lg:gap-6">
           <TextField
             name="email"
@@ -63,6 +63,7 @@ const LoginForm = () => {
             variant="dark"
             type="submit"
             className="w-full"
+            disabled={isSubmitting}
           />
         </Form>
       )}

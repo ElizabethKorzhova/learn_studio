@@ -10,7 +10,7 @@ import type {
   TokenPair,
 } from "@/features/auth/types/auth.types";
 
-const parseBackendResponse = async (response: Response) => {
+export const parseBackendResponse = async (response: Response) => {
   const text = await response.text();
 
   if (!text) return null;

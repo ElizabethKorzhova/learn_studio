@@ -9,6 +9,7 @@ import type {
   LoginDataType,
   TokenPair,
 } from "@/features/auth/types/auth.types";
+import { parseBackendResponse } from "@/app/api/auth/register/route";
 
 export const POST = async (request: Request) => {
   try {
@@ -23,7 +24,7 @@ export const POST = async (request: Request) => {
       cache: "no-store",
     });
 
-    const data = await backendResponse.json();
+    const data = await parseBackendResponse(backendResponse);
 
     if (!backendResponse.ok) {
       return NextResponse.json(
