@@ -80,7 +80,7 @@ const CourseDetails = ({
 
                 {permissions.canOpenLessons ? (
                   <Link
-                    href={routes.lesson(String(courseId), String(lesson.id))}
+                    href={`${routes.lesson(String(lesson.id))}?course_id=${courseId}`}
                     className="text-primary-dark hover:text-primary-accent font-bold"
                   >
                     {lesson.title}
